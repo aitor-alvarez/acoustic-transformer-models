@@ -54,7 +54,7 @@ class Wav2VecAcousticClassifier(Wav2Vec2PreTrainedModel):
 
 class HubertAcousticClassifier(HubertPreTrainedModel):
     def __init__(self, config):
-        super().__init__(config)
+        super().__init__()
         self.hubert = HubertModel(config)
         self.classifier = ClassifierModule(config)
         self.init_weights()
