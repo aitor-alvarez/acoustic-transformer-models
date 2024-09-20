@@ -16,6 +16,12 @@ facebook/hubert-xlarge-ls960-ft
 
 You can also pretrain a model directly by passing your own (--model_name).
 
+Before you train the model, you need to clone the repo and run the requirements:
+
+```
+pip install -r requirements.txt
+```
+
 The following command trains and tests the model:
 
 ```
