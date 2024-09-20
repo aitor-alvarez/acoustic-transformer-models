@@ -2,7 +2,7 @@
 
 The code in this repository can be used to finetune Transformer models such as Wav2vec or HuBert in downstream classification tasks. A classification head has been added to the models to be able to use it in acoustic classification tasks.
 
-The following pretrained models (and other from the same family: https://huggingface.co/collections/facebook/xlsr-651e8a5bb947065cccb62c6c or https://huggingface.co/collections/facebook/wav2vec-20-651e865258e3dee2586c89f5) can be used and passed to the trainer:
+The following pretrained models (or any other from the same family: https://huggingface.co/collections/facebook/xlsr-651e8a5bb947065cccb62c6c or https://huggingface.co/collections/facebook/wav2vec-20-651e865258e3dee2586c89f5) can be used and passed to the trainer:
 
 ```
 facebook/wav2vec2-base
