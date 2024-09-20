@@ -20,7 +20,7 @@ The following command trains and tests the model:
 
 ```
 python main.py --model_name 'either_pretrain_from_the_above_list_or_your_own_model'
---batch_size 32 --num_epochs 100
+--batch_size 16 --num_epochs 100
 --data_dir 'path_to_dataset_directory'
 --lang 'es' --n_gpus 4 --n_nodes 1 --strategy="ddp"
 ```
