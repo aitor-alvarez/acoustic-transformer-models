@@ -20,17 +20,17 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.data_dir and args.model_name:
-        dataset = load_dataset("audiofolder", data_dir=args.data_dir)
+        dataset = load_dataset("audiofolder", data_dir=args.data_dir, drop_labels=False)
         labels = dataset["train"].features["label"].names
         label2id, id2label = dict(), dict()
         for i, label in enumerate(labels):
             label2id[label] = str(i)
             id2label[str(i)] = label
         num_labels = len(id2label)
-        config = AutoConfig.from_pretrained(pretrained_model_name_or_path=args.model_name,
-                                        num_labels=num_labels, label2id=label2id, id2label=id2label)
+        config = AutoConfig.from_pretrained(args.model_name,
+                                num_labels=num_labels, label2id=label2id, id2label=id2label)
 
-        model = AcousticTransformer(config=config)
+        model = AcousticTransformer(config)
         logger = WandbLogger(
             project="finetuning_whisper",
             log_model=True,
@@ -41,7 +41,7 @@ if __name__ == '__main__':
                               strategy=args.strategy, devices=args.n_gpus, num_nodes=args.n_nodes)
         else:
             trainer = Trainer(max_epochs=args.num_epochs, logger=logger, accumulate_grad_batches=2,
-                              accelerator="auto", devices="auto")
+                              accelerator="cpu", devices="auto")
 
         data = AudioDataset(model_name=args.model_name, batch_size=args.batch_size,
                                     dataset=dataset)

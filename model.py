@@ -54,7 +54,7 @@ class Wav2VecAcousticClassifier(Wav2Vec2PreTrainedModel):
 
 class HubertAcousticClassifier(HubertPreTrainedModel):
     def __init__(self, config):
-        super().__init__()
+        super().__init__(config)
         self.hubert = HubertModel(config)
         self.classifier = ClassifierModule(config)
         self.init_weights()
@@ -67,7 +67,6 @@ class HubertAcousticClassifier(HubertPreTrainedModel):
         output_attentions = None,
         output_hidden_states = None,
         return_dict =  None):
-
         outputs = self.hubert(input_values,
             attention_mask=attention_mask,
             output_attentions=output_attentions,
@@ -82,12 +81,11 @@ class AcousticTransformer(L.LightningModule):
     def __init__(self, config):
         super().__init__()
         self.config = config
-        if 'hubert' in config.pretrained_model_name_or_path:
-            self.model = HubertAcousticClassifier.from_pretrained(config.pretrained_model_name_or_path,
-                                                                  config=config)
-        elif 'wav2vec' in config.pretrained_model_name_or_path:
-            self.model = Wav2VecAcousticClassifier.from_pretrained(config.pretrained_model_name_or_path,
-                                                                   config=config)
+        print(config)
+        if 'hubert' in config._name_or_path:
+            self.model = HubertAcousticClassifier.from_pretrained(config._name_or_path, config=config)
+        elif 'wav2vec' in config._name_or_path:
+            self.model = Wav2VecAcousticClassifier.from_pretrained(config._name_or_path, config=config)
         self.model.freeze_feature_extractor()
 
     def compute_metrics(self, eval_pred):
@@ -99,8 +97,8 @@ class AcousticTransformer(L.LightningModule):
 
 
     def training_step(self, batch):
-        x = batch['input_features']
-        y = batch['labels']
+        x = batch['input_values']
+        y = batch['label']
         output = self.model(x)
         loss = F.cross_entropy(output, y)
         self.log('Training loss', loss)
@@ -114,6 +112,6 @@ class AcousticTransformer(L.LightningModule):
         return loss
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.encoder.parameters(), lr=1e-3)
+        optimizer = torch.optim.Adam(self.model.parameters(), lr=1e-3)
         lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
         return [optimizer], [lr_scheduler]
