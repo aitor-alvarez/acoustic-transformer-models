@@ -2,14 +2,26 @@ import lightning as L
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from dataclasses import dataclass
 from transformers.models.hubert import HubertModel, HubertPreTrainedModel
 from transformers.models.wav2vec2 import Wav2Vec2Model, Wav2Vec2PreTrainedModel
+from transformers.file_utils import ModelOutput
+from typing import Optional, Tuple
 import evaluate
 import numpy as np
 
 accuracy = evaluate.load("accuracy")
 recall = evaluate.load('recall')
 precision = evaluate.load('precision')
+
+
+@dataclass
+class AcousticTransformerOutput(ModelOutput):
+    loss: Optional[torch.FloatTensor] = None
+    logits: torch.FloatTensor = None
+    hidden_states: Optional[Tuple[torch.FloatTensor]] = None
+    attentions: Optional[Tuple[torch.FloatTensor]] = None
+
 
 class ClassifierModule(nn.Module):
     def __init__(self, config):
@@ -22,7 +34,7 @@ class ClassifierModule(nn.Module):
         x = self.dense(x)
         x = self.dropout(x)
         x = self.linear(x)
-        return nn.Softmax(x)
+        return x
 
 class Wav2VecAcousticClassifier(Wav2Vec2PreTrainedModel):
     def __init__(self, config):
@@ -39,7 +51,8 @@ class Wav2VecAcousticClassifier(Wav2Vec2PreTrainedModel):
             attention_mask=None,
             output_attentions=None,
             output_hidden_states=None,
-            return_dict=None):
+            return_dict=None,
+                labels=None):
 
         outputs = self.w2v(input_values,
             attention_mask=attention_mask,
@@ -48,13 +61,16 @@ class Wav2VecAcousticClassifier(Wav2Vec2PreTrainedModel):
             return_dict=return_dict)
         hidden_states = outputs[0]
         x = torch.mean(hidden_states, dim=1)
-        x = self.classifier(x)
-        return x
+        logits = self.classifier(x)
+        celoss = nn.CrossEntropyLoss()
+        loss = celoss(logits.view(-1, self.num_labels), labels.view(-1))
+        return AcousticTransformer(loss=loss, logits=logits)
 
 
 class HubertAcousticClassifier(HubertPreTrainedModel):
     def __init__(self, config):
         super().__init__(config)
+        self.num_labels = self.config.num_labels
         self.hubert = HubertModel(config)
         self.classifier = ClassifierModule(config)
         self.init_weights()
@@ -66,7 +82,8 @@ class HubertAcousticClassifier(HubertPreTrainedModel):
         attention_mask = None,
         output_attentions = None,
         output_hidden_states = None,
-        return_dict =  None):
+        return_dict =  None,
+                labels = None):
         outputs = self.hubert(input_values,
             attention_mask=attention_mask,
             output_attentions=output_attentions,
@@ -74,14 +91,19 @@ class HubertAcousticClassifier(HubertPreTrainedModel):
             return_dict=return_dict)
         hidden_states = outputs[0]
         x = torch.mean(hidden_states, dim=1)
-        x = self.classifier(x)
-        return x
+        logits = self.classifier(x)
+        celoss = nn.CrossEntropyLoss()
+        loss = celoss(logits.view(-1, self.num_labels), labels.view(-1))
+        return AcousticTransformer(loss=loss,logits=logits)
 
 class AcousticTransformer(L.LightningModule):
     def __init__(self, config):
+        """
+
+        :rtype: object
+        """
         super().__init__()
         self.config = config
-        print(config)
         if 'hubert' in config._name_or_path:
             self.model = HubertAcousticClassifier.from_pretrained(config._name_or_path, config=config)
         elif 'wav2vec' in config._name_or_path:
@@ -98,17 +120,19 @@ class AcousticTransformer(L.LightningModule):
 
     def training_step(self, batch):
         x = batch['input_values']
-        y = batch['label']
-        output = self.model(x)
-        loss = F.cross_entropy(output, y)
+        y = batch['labels']
+        print(x[0])
+        print(y)
+        output = self.model(x, labels=y)
+        loss = output[0]
         self.log('Training loss', loss)
         return loss
 
     def test_step(self, batch):
         x = batch['input_features']
         y = batch['labels']
-        output = self.model(x)
-        loss = F.cross_entropy(output, y)
+        output = self.model(x, labels=y)
+        loss = output[0]
         return loss
 
     def configure_optimizers(self):

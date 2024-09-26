@@ -32,7 +32,7 @@ if __name__ == '__main__':
 
         model = AcousticTransformer(config)
         logger = WandbLogger(
-            project="finetuning_whisper",
+            project="acoustic_transformer",
             log_model=True,
             save_dir="./wandb",
         )
@@ -41,7 +41,7 @@ if __name__ == '__main__':
                               strategy=args.strategy, devices=args.n_gpus, num_nodes=args.n_nodes)
         else:
             trainer = Trainer(max_epochs=args.num_epochs, logger=logger, accumulate_grad_batches=2,
-                              accelerator="cpu", devices="auto")
+                              accelerator="cpu", devices="auto", log_every_n_steps=10)
 
         data = AudioDataset(model_name=args.model_name, batch_size=args.batch_size,
                                     dataset=dataset)
