@@ -25,8 +25,23 @@ pip install -r requirements.txt
 The following command trains and tests the model:
 
 ```
-python main.py --model_name 'either_pretrain_model_from_the_above_list_or_your_own_model'
+python main.py --model_name 'either_pretrained_model_from_the_above_list_or_your_own_model'
 --batch_size 16 --num_epochs 100
 --data_dir 'path_to_dataset_directory'
 --n_gpus 4 --n_nodes 1 --strategy='ddp'
+```
+
+You can include DeepSpeed optimizations by installing it:
+
+```
+pip install deepspeed
+```
+
+and use any of the DeepSpeed strategies:
+
+```
+python main.py --model_name 'either_pretrained_model_from_the_above_list_or_your_own_model'
+--batch_size 16 --num_epochs 100
+--data_dir 'path_to_dataset_directory'
+--n_gpus 4 --n_nodes 1 --strategy='deepspeed_stage_2_offload'
 ```
