@@ -1,14 +1,13 @@
 import lightning as L
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 from dataclasses import dataclass
 from transformers.models.hubert import HubertModel, HubertPreTrainedModel
 from transformers.models.wav2vec2 import Wav2Vec2Model, Wav2Vec2PreTrainedModel
+from torchmetrics import Accuracy, Recall, F1Score
 from transformers.file_utils import ModelOutput
 from typing import Optional, Tuple
 import evaluate
-import numpy as np
 
 accuracy = evaluate.load("accuracy")
 recall = evaluate.load('recall')
@@ -19,6 +18,8 @@ precision = evaluate.load('precision')
 class AcousticTransformerOutput(ModelOutput):
     loss: Optional[torch.FloatTensor] = None
     logits: torch.FloatTensor = None
+    preds: torch.LongTensor = None
+    targets: torch.LongTensor = None
     hidden_states: Optional[Tuple[torch.FloatTensor]] = None
     attentions: Optional[Tuple[torch.FloatTensor]] = None
 
@@ -63,8 +64,10 @@ class Wav2VecAcousticClassifier(Wav2Vec2PreTrainedModel):
         x = torch.mean(hidden_states, dim=1)
         logits = self.classifier(x)
         celoss = nn.CrossEntropyLoss()
-        loss = celoss(logits.view(-1, self.num_labels), labels.view(-1))
-        return AcousticTransformer(loss=loss, logits=logits)
+        preds = logits.view(-1, self.num_labels)
+        targets = labels.view(-1)
+        loss = celoss(preds, targets)
+        return AcousticTransformerOutput(loss=loss, logits=logits, preds=preds, targets=targets)
 
 
 class HubertAcousticClassifier(HubertPreTrainedModel):
@@ -93,16 +96,17 @@ class HubertAcousticClassifier(HubertPreTrainedModel):
         x = torch.mean(hidden_states, dim=1)
         logits = self.classifier(x)
         celoss = nn.CrossEntropyLoss()
-        loss = celoss(logits.view(-1, self.num_labels), labels.view(-1))
-        return AcousticTransformer(loss=loss,logits=logits)
+        preds = logits.view(-1, self.num_labels)
+        targets = labels.view(-1)
+        loss = celoss(preds, targets)
+        return AcousticTransformerOutput(loss=loss, logits=logits, preds=preds, targets=targets)
 
 class AcousticTransformer(L.LightningModule):
     def __init__(self, config):
-        """
-
-        :rtype: object
-        """
         super().__init__()
+        self.train_acc = Accuracy(task="multiclass", num_classes=config.num_labels)
+        self.train_f1 = F1Score(task="multiclass", average='micro', num_classes=config.num_labels)
+        self.train_rec = Recall(task="multiclass", average='micro', num_classes=config.num_labels)
         self.config = config
         if 'hubert' in config._name_or_path:
             self.model = HubertAcousticClassifier.from_pretrained(config._name_or_path, config=config)
@@ -110,22 +114,21 @@ class AcousticTransformer(L.LightningModule):
             self.model = Wav2VecAcousticClassifier.from_pretrained(config._name_or_path, config=config)
         self.model.freeze_feature_extractor()
 
-    def compute_metrics(self, eval_pred):
-        predictions = np.argmax(eval_pred.predictions, axis=1)
-        acc = accuracy.compute(predictions=predictions, references=eval_pred.label_ids)
-        rec_w = recall.compute(predictions=predictions, references=eval_pred.label_ids, average='weighted')
-        rec_u = recall.compute(predictions=predictions, references=eval_pred.label_ids, average=None)
-        return acc, rec_w, rec_u
-
 
     def training_step(self, batch):
         x = batch['input_values']
         y = batch['labels']
-        print(x[0])
-        print(y)
         output = self.model(x, labels=y)
         loss = output[0]
-        self.log('Training loss', loss)
+        preds = output[2]
+        targets = output[3]
+        accuracy = self.train_acc(preds, targets)
+        recall = self.train_rec(preds, targets)
+        f1 = self.train_f1(preds, targets)
+        self.log('Training Loss', loss, prog_bar=True)
+        self.log('Training Accuracy', accuracy, prog_bar=True)
+        self.log('Training Recall', recall, prog_bar=True)
+        self.log('Training F1 Score', f1, prog_bar=True)
         return loss
 
     def test_step(self, batch):

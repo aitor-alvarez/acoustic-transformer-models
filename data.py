@@ -1,6 +1,6 @@
 import lightning as L
 from lightning.pytorch.utilities.types import TRAIN_DATALOADERS, EVAL_DATALOADERS
-from transformers import AutoFeatureExtractor, BatchFeature
+from transformers import AutoFeatureExtractor
 from torch.utils.data import DataLoader
 import torch
 
@@ -20,13 +20,17 @@ class AudioDataset(L.LightningDataModule):
         )
         return inputs
 
+    def get_max_len(self, inputs):
+        max_len=0
+        for i in inputs:
+            if torch.numel(i['input_values'][0]) > max_len:
+                max_len = len(i['input_values'][0])
+        return max_len
 
     def collate(self, inputs):
-        max_dur = max([len(x['input_values'][0]) for x in inputs])
+        max_dur = self.get_max_len(inputs)
         input_features = [{"input_values": i['input_values'][0]} for i in inputs]
         labels = [i["label"] for i in inputs]
-        d_type = torch.long if isinstance(labels[0], int) else torch.float
-
         batch = self.feature_extractor.pad(
             input_features,
             padding=True,
@@ -40,11 +44,11 @@ class AudioDataset(L.LightningDataModule):
     def setup(self, stage: str =None):
         self.train = self.dataset["train"].with_format("torch")
         self.encoded_dataset = self.train.map(self.prepare_dataset, remove_columns='audio', batch_size=1, batched=True)
-        #self.test = self.dataset["test"].with_format("torch")
-       #self.test = self.test.map(self.preprocess_fun, batch_size=10, batched=True)
+        self.test = self.dataset["test"].with_format("torch")
+        self.test = self.test.map(self.prepare_dataset, batch_size=1, batched=True)
 
     def train_dataloader(self) -> TRAIN_DATALOADERS:
-        return DataLoader(self.encoded_dataset, batch_size=self.batch_size, collate_fn=self.collate)
+        return DataLoader(self.encoded_dataset, batch_size=self.batch_size, collate_fn=self.collate, shuffle=True)
 
     def test_dataloader(self) -> EVAL_DATALOADERS:
-        return DataLoader(self.test, batch_size=1)
+        return DataLoader(self.test, batch_size=1, collate_fn=self.collate, shuffle=True)
