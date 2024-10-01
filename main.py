@@ -33,7 +33,7 @@ if __name__ == '__main__':
         model = AcousticTransformer(config)
         logger = WandbLogger(
             project="acoustic_transformer",
-            log_model=True,
+            offline = True,
             save_dir="./wandb",
         )
         if args.n_gpus and args.n_nodes:

@@ -44,8 +44,8 @@ class AudioDataset(L.LightningDataModule):
     def setup(self, stage: str =None):
         self.train = self.dataset["train"].with_format("torch")
         self.encoded_dataset = self.train.map(self.prepare_dataset, remove_columns='audio', batch_size=1, batched=True)
-        self.test = self.dataset["test"].with_format("torch")
-        self.test = self.test.map(self.prepare_dataset, remove_columns='audio', batch_size=1, batched=True)
+       # self.test = self.dataset["test"].with_format("torch")
+       # self.test = self.test.map(self.prepare_dataset, remove_columns='audio', batch_size=1, batched=True)
 
     def train_dataloader(self) -> TRAIN_DATALOADERS:
         return DataLoader(self.encoded_dataset, batch_size=self.batch_size, collate_fn=self.collate, shuffle=True)
