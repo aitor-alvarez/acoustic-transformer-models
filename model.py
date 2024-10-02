@@ -109,21 +109,23 @@ class AcousticTransformer(L.LightningModule):
             self.model = Wav2VecAcousticClassifier.from_pretrained(config._name_or_path, config=config)
         self.model.freeze_feature_extractor()
 
-
-    def training_step(self, batch):
-        x = batch['input_values']
-        y = batch['labels']
-        output = self.model(x, labels=y)
-        loss = output[0]
+    def compute_metrics(self, output, name):
         preds = output[2]
         targets = output[3]
         accuracy = self.train_acc(preds, targets)
         recall = self.train_rec(preds, targets)
         f1 = self.train_f1(preds, targets)
+        self.log(f'{name} Accuracy', accuracy, prog_bar=True)
+        self.log(f'{name} Recall', recall, prog_bar=True)
+        self.log(f'{name} F1 Score', f1, prog_bar=True)
+        return None
+    def training_step(self, batch):
+        x = batch['input_values']
+        y = batch['labels']
+        output = self.model(x, labels=y)
+        loss = output[0]
         self.log('Training Loss', loss, prog_bar=True)
-        self.log('Training Accuracy', accuracy, prog_bar=True)
-        self.log('Training Recall', recall, prog_bar=True)
-        self.log('Training F1 Score', f1, prog_bar=True)
+        self.compute_metrics(output, 'Training')
         return loss
 
     def test_step(self, batch):
@@ -131,6 +133,8 @@ class AcousticTransformer(L.LightningModule):
         y = batch['labels']
         output = self.model(x, labels=y)
         loss = output[0]
+        self.log('Test Loss', loss, prog_bar=True)
+        self.compute_metrics(output, 'Test')
         return loss
 
     def configure_optimizers(self):
