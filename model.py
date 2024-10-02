@@ -100,8 +100,8 @@ class AcousticTransformer(L.LightningModule):
     def __init__(self, config):
         super().__init__()
         self.train_acc = Accuracy(task="multiclass", num_classes=config.num_labels)
-        self.train_f1 = F1Score(task="multiclass", average='micro', num_classes=config.num_labels)
-        self.train_rec = Recall(task="multiclass", average='micro', num_classes=config.num_labels)
+        self.train_f1 = F1Score(task="multiclass", average='macro', num_classes=config.num_labels)
+        self.train_rec = Recall(task="multiclass", average='macro', num_classes=config.num_labels)
         self.config = config
         if 'hubert' in config._name_or_path:
             self.model = HubertAcousticClassifier.from_pretrained(config._name_or_path, config=config)
