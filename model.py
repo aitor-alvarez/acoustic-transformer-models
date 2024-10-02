@@ -7,11 +7,6 @@ from transformers.models.wav2vec2 import Wav2Vec2Model, Wav2Vec2PreTrainedModel
 from torchmetrics import Accuracy, Recall, F1Score
 from transformers.file_utils import ModelOutput
 from typing import Optional, Tuple
-import evaluate
-
-accuracy = evaluate.load("accuracy")
-recall = evaluate.load('recall')
-precision = evaluate.load('precision')
 
 
 @dataclass
