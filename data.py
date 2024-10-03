@@ -1,7 +1,7 @@
 import lightning as L
 from lightning.pytorch.utilities.types import TRAIN_DATALOADERS, EVAL_DATALOADERS
 from transformers import AutoFeatureExtractor
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Subset
 import torch
 
 class AudioDataset(L.LightningDataModule):
@@ -42,13 +42,21 @@ class AudioDataset(L.LightningDataModule):
         return batch
 
     def setup(self, stage: str =None):
-        self.train = self.dataset["train"].with_format("torch")
+        train_data = self.dataset["train"].with_format("torch").shuffle(seed=42)
+        k = round(len(train_data)/5)
+        end = len(train_data)
+        self.val_dataset = train_data.select((range(0, k)))
+        self.val_dataset = self.val_dataset.map(self.prepare_dataset, remove_columns='audio', batch_size=1, batched=True)
+        self.train = train_data.select((range(k, end)))
         self.encoded_dataset = self.train.map(self.prepare_dataset, remove_columns='audio', batch_size=1, batched=True)
         self.test = self.dataset["test"].with_format("torch")
         self.test = self.test.map(self.prepare_dataset, remove_columns='audio', batch_size=1, batched=True)
 
     def train_dataloader(self) -> TRAIN_DATALOADERS:
         return DataLoader(self.encoded_dataset, batch_size=self.batch_size, collate_fn=self.collate, shuffle=True)
+
+    def val_dataloader(self) -> EVAL_DATALOADERS:
+        return DataLoader(self.val_dataset, batch_size=self.batch_size, collate_fn=self.collate)
 
     def test_dataloader(self) -> EVAL_DATALOADERS:
         return DataLoader(self.test, batch_size=1, collate_fn=self.collate, shuffle=True)

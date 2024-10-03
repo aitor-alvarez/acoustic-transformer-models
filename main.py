@@ -37,11 +37,12 @@ if __name__ == '__main__':
             offline = True,
             save_dir="./wandb",
         )
-        if args.n_gpus > 1 and args.n_nodes:
-            trainer = Trainer(max_epochs=args.num_epochs, logger=logger, accelerator='cuda', accumulate_grad_batches=2,
+        if args.n_gpus and args.n_nodes:
+            if args.ngpus > 1:
+                trainer = Trainer(max_epochs=args.num_epochs, logger=logger, accelerator='cuda', accumulate_grad_batches=2,
                               strategy=args.strategy, devices=args.n_gpus, num_nodes=args.n_nodes, log_every_n_steps=10)
-        elif args.n_gpus < 2 and args.n_nodes:
-            trainer = Trainer(max_epochs=args.num_epochs, logger=logger, accelerator='cuda', accumulate_grad_batches=2,
+            elif args.n_gpus < 2:
+                trainer = Trainer(max_epochs=args.num_epochs, logger=logger, accelerator='cuda', accumulate_grad_batches=2,
                               devices=args.n_gpus, num_nodes=args.n_nodes, log_every_n_steps=10)
         else:
             trainer = Trainer(max_epochs=args.num_epochs, logger=logger, accumulate_grad_batches=2,
