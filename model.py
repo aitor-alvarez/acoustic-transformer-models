@@ -63,13 +63,7 @@ class AcousticTransformer(L.LightningModule):
         self.compute_metrics(preds, targets, 'Test')
         return loss
 
-    def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_closure):
-        # update params
-        optimizer.step(closure=optimizer_closure)
-        # update learning rate
-        self.lr_schedulers().step()
-
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.model.parameters(), lr=1e-3)
+        optimizer = torch.optim.Adam(self.model.parameters(), lr=0.01)
         lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
         return [optimizer], [lr_scheduler]

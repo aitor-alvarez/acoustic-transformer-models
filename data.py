@@ -16,7 +16,7 @@ class AudioDataset(L.LightningDataModule):
     def prepare_dataset(self, batch):
         audio = [x['array'] for x in batch['audio']]
         inputs = self.feature_extractor(
-            audio, sampling_rate=self.feature_extractor.sampling_rate, max_length=16000, padding=True, truncation=True
+            audio, sampling_rate=self.feature_extractor.sampling_rate
         )
         return inputs
 
