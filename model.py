@@ -1,10 +1,8 @@
-from typing import Any
-
 import lightning as L
 import torch
 import torch.nn as nn
-from transformers.models.hubert import HubertModel
-from transformers.models.wav2vec2 import Wav2Vec2Model
+from transformers.models.hubert import HubertModel, HubertForSequenceClassification
+from transformers.models.wav2vec2 import Wav2Vec2Model, Wav2Vec2ForSequenceClassification
 from torchmetrics import Accuracy, Recall, F1Score
 
 class AcousticTransformer(L.LightningModule):
@@ -16,36 +14,13 @@ class AcousticTransformer(L.LightningModule):
         self.config = config
         self.num_labels = self.config.num_labels
         if 'hubert' in self.config._name_or_path:
-            self.model = HubertModel(config)
-            self.model = self.model.from_pretrained(config._name_or_path, config=config)
-            self.model.feature_extractor._freeze_parameters()
-            self.model.init_weights()
+            self.model = HubertForSequenceClassification.from_pretrained(config._name_or_path, config=config)
+            self.model.freeze_feature_encoder()
+
         elif 'wav2vec' in self.config._name_or_path:
-            self.model = Wav2Vec2Model(config)
-            self.model = self.model.from_pretrained(config._name_or_path, config=config)
+            self.model = Wav2Vec2ForSequenceClassification.from_pretrained(config._name_or_path, config=config)
             self.model.freeze_feature_extractor()
-            self.model.init_weights()
-
-        self.dense = nn.Linear(config.hidden_size, config.hidden_size)
-        self.linear = nn.Linear(config.hidden_size, config.num_labels)
-
-    def forward(self,
-        input_values,
-        attention_mask = None,
-        output_attentions = None,
-        output_hidden_states = None,
-        return_dict =  None):
-
-        outputs = self.model(input_values,
-                attention_mask=attention_mask,
-                output_attentions=output_attentions,
-                output_hidden_states=output_hidden_states,
-                return_dict=return_dict)
-        hidden_states = outputs[0]
-        x = torch.mean(hidden_states, dim=1)
-        x = self.dense(x)
-        x = self.linear(x)
-        return x
+        self.model.train()
 
     def compute_metrics(self, preds, targets, name):
         accuracy = self.train_acc(preds, targets)
@@ -57,24 +32,22 @@ class AcousticTransformer(L.LightningModule):
         return None
 
     def training_step(self, batch):
+        assert self.model.training
         x = batch['input_values']
         y = batch['labels']
-        logits = self.forward(x)
-        celoss = nn.CrossEntropyLoss()
-        preds = logits.view(-1, self.num_labels)
-        targets = y.view(-1)
-        loss = celoss(preds, targets)
+        outputs = self.model(x, labels=y)
+        loss = outputs[0]
         self.log('Training Loss', loss, prog_bar=True)
         return loss
 
     def validation_step(self, batch):
         x = batch['input_values']
         y = batch['labels']
-        logits = self.forward(x)
-        celoss = nn.CrossEntropyLoss()
+        outputs = self.model(x, labels=y)
+        loss = outputs[0]
+        logits = outputs[1]
         preds = logits.view(-1, self.num_labels)
         targets = y.view(-1)
-        loss = celoss(preds, targets)
         self.log('Validation Loss', loss, prog_bar=True)
         self.compute_metrics(preds, targets, 'Validation')
 

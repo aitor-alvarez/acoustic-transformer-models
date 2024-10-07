@@ -30,7 +30,12 @@ if __name__ == '__main__':
         config = AutoConfig.from_pretrained(args.model_name,
                                 num_labels=num_labels, label2id=label2id, id2label=id2label)
 
+
         model = AcousticTransformer(config)
+
+        data = AudioDataset(model_name=args.model_name, batch_size=args.batch_size,
+                                dataset=dataset)
+
         logger = WandbLogger(
             project="acoustic_transformer",
             log_model=False,
@@ -48,8 +53,7 @@ if __name__ == '__main__':
             trainer = Trainer(max_epochs=args.num_epochs, logger=logger, accumulate_grad_batches=2,
                               accelerator="cpu", devices="auto", log_every_n_steps=10)
 
-        data = AudioDataset(model_name=args.model_name, batch_size=args.batch_size,
-                                    dataset=dataset)
+
         data.setup()
         trainer.fit(model, datamodule=data)
         trainer.print(cuda.memory_summary())
