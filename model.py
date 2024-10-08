@@ -1,8 +1,9 @@
 import lightning as L
 import torch
 import torch.nn as nn
-from transformers.models.hubert import HubertModel, HubertForSequenceClassification
-from transformers.models.wav2vec2 import Wav2Vec2Model, Wav2Vec2ForSequenceClassification
+from transformers.models.hubert import HubertForSequenceClassification
+from transformers.models.wav2vec2 import Wav2Vec2ForSequenceClassification
+from transformers.models.wav2vec2_conformer import Wav2Vec2ConformerForSequenceClassification
 from torchmetrics import Accuracy, Recall, F1Score
 
 class AcousticTransformer(L.LightningModule):
@@ -15,6 +16,10 @@ class AcousticTransformer(L.LightningModule):
         self.num_labels = self.config.num_labels
         if 'hubert' in self.config._name_or_path:
             self.model = HubertForSequenceClassification.from_pretrained(config._name_or_path, config=config)
+            self.model.freeze_feature_encoder()
+
+        elif 'wav2vec2-conformer' in self.config._name_or_path:
+            self.model = Wav2Vec2ConformerForSequenceClassification.from_pretrained(config._name_or_path, config=config)
             self.model.freeze_feature_encoder()
 
         elif 'wav2vec' in self.config._name_or_path:
@@ -64,6 +69,6 @@ class AcousticTransformer(L.LightningModule):
         return loss
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.model.parameters(), lr=0.01)
+        optimizer = torch.optim.Adam(self.model.parameters(), lr=0.001)
         lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
         return [optimizer], [lr_scheduler]

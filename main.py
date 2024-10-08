@@ -50,9 +50,9 @@ if __name__ == '__main__':
                 trainer = Trainer(max_epochs=args.num_epochs, logger=logger, accelerator='cuda', accumulate_grad_batches=2,
                               devices=args.n_gpus, num_nodes=args.n_nodes, log_every_n_steps=10)
         else:
-            #For testing on Mac prior to SLURM. If mps not available change accelerator="cpu"
+            #For testing on Mac prior to SLURM set accelerator="mps". If mps is not available change accelerator="cpu"
             trainer = Trainer(max_epochs=args.num_epochs, logger=logger, accumulate_grad_batches=2,
-                              accelerator="mps", devices="auto", log_every_n_steps=10)
+                              accelerator="cpu", devices="auto", log_every_n_steps=10)
 
 
         data.setup()
