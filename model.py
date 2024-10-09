@@ -4,12 +4,14 @@ import torch.nn as nn
 from transformers.models.hubert import HubertForSequenceClassification
 from transformers.models.wav2vec2 import Wav2Vec2ForSequenceClassification
 from transformers.models.wav2vec2_conformer import Wav2Vec2ConformerForSequenceClassification
+from transformers.models.wavlm import WavLMForSequenceClassification
 from torchmetrics import Accuracy, Recall, F1Score
 
 class AcousticTransformer(L.LightningModule):
     def __init__(self, config):
         super().__init__()
-        self.train_acc = Accuracy(task="multiclass", num_classes=config.num_labels)
+        self.save_hyperparameters()
+        self.train_acc = Accuracy(task="multiclass", average='weighted', num_classes=config.num_labels)
         self.train_f1 = F1Score(task="multiclass", average='macro', num_classes=config.num_labels)
         self.train_rec = Recall(task="multiclass", average='macro', num_classes=config.num_labels)
         self.config = config
@@ -25,6 +27,10 @@ class AcousticTransformer(L.LightningModule):
         elif 'wav2vec' in self.config._name_or_path:
             self.model = Wav2Vec2ForSequenceClassification.from_pretrained(config._name_or_path, config=config)
             self.model.freeze_feature_extractor()
+
+        elif 'wavlm' in self.config._name_or_path:
+            self.model = WavLMForSequenceClassification.from_pretrained(config._name_or_path, config=config)
+            self.model.freeze_feature_encoder()
         self.model.train()
 
     def compute_metrics(self, preds, targets, name):

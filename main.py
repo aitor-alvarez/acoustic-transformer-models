@@ -1,6 +1,8 @@
 from argparse import ArgumentParser
 from lightning import Trainer
 from lightning.pytorch.loggers import WandbLogger
+from lightning.pytorch.callbacks.early_stopping import EarlyStopping
+from lightning.pytorch.callbacks import ModelCheckpoint
 from model import AcousticTransformer
 from transformers import AutoConfig
 from datasets import load_dataset
@@ -33,6 +35,11 @@ if __name__ == '__main__':
 
         model = AcousticTransformer(config)
 
+        early_stopping = EarlyStopping(monitor="val_accuracy", min_delta=0.00, patience=3, verbose=False,
+                                            mode="max")
+
+        checkpoint_callback = ModelCheckpoint(dirpath="checkpoints/", save_top_k=1, monitor="val_accuracy")
+
         data = AudioDataset(model_name=args.model_name, batch_size=args.batch_size,
                                 dataset=dataset)
 
@@ -45,20 +52,22 @@ if __name__ == '__main__':
         if args.n_gpus and args.n_nodes:
             if args.n_gpus > 1:
                 trainer = Trainer(max_epochs=args.num_epochs, logger=logger, accelerator='cuda', accumulate_grad_batches=2,
-                              strategy=args.strategy, devices=args.n_gpus, num_nodes=args.n_nodes, log_every_n_steps=10)
+                              strategy=args.strategy, devices=args.n_gpus, num_nodes=args.n_nodes, log_every_n_steps=10,
+                                  callbacks=[early_stopping, checkpoint_callback])
             elif args.n_gpus < 2:
                 trainer = Trainer(max_epochs=args.num_epochs, logger=logger, accelerator='cuda', accumulate_grad_batches=2,
-                              devices=args.n_gpus, num_nodes=args.n_nodes, log_every_n_steps=10)
+                              devices=args.n_gpus, num_nodes=args.n_nodes, log_every_n_steps=10,
+                                  callbacks=[early_stopping, checkpoint_callback])
         else:
             #For testing on Mac prior to SLURM set accelerator="mps". If mps is not available change accelerator="cpu"
             trainer = Trainer(max_epochs=args.num_epochs, logger=logger, accumulate_grad_batches=2,
-                              accelerator="cpu", devices="auto", log_every_n_steps=10)
+                              accelerator="cpu", devices="auto", log_every_n_steps=10,
+                              callbacks=[early_stopping, checkpoint_callback])
 
 
         data.setup()
         trainer.fit(model, datamodule=data)
         trainer.print(cuda.memory_summary())
-        trainer.save_checkpoint('./checkpoints')
         trainer.test(model, datamodule=data)
         print("training process completed")
 
