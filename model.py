@@ -12,8 +12,8 @@ class AcousticTransformer(L.LightningModule):
         super().__init__()
         self.save_hyperparameters()
         self.train_acc = Accuracy(task="multiclass", average='weighted', num_classes=config.num_labels)
-        self.train_f1 = F1Score(task="multiclass", average='macro', num_classes=config.num_labels)
-        self.train_rec = Recall(task="multiclass", average='macro', num_classes=config.num_labels)
+        self.train_f1 = F1Score(task="multiclass", average='weighted', num_classes=config.num_labels)
+        self.train_rec = Recall(task="multiclass", average='weighted', num_classes=config.num_labels)
         self.config = config
         self.num_labels = self.config.num_labels
         if 'hubert' in self.config._name_or_path:
