@@ -48,6 +48,8 @@ class AcousticTransformer(L.LightningModule):
         y = batch['labels']
         outputs = self.model(x, labels=y)
         loss = outputs[0]
+        scheduler = self.lr_schedulers()
+        self.log("lr", scheduler.get_last_lr()[0], prog_bar=True)
         self.log('Training Loss', loss, prog_bar=True)
         return loss
 
@@ -75,6 +77,6 @@ class AcousticTransformer(L.LightningModule):
         return loss
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.model.parameters(), lr=0.001)
-        lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
-        return [optimizer], [lr_scheduler]
+        optimizer = torch.optim.Adam(self.parameters(), lr=0.0001, weight_decay=0.00)
+        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=30, gamma=0.1)
+        return [optimizer], [scheduler]
