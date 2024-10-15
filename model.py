@@ -49,8 +49,8 @@ class AcousticTransformer(L.LightningModule):
         outputs = self.model(x, labels=y)
         loss = outputs[0]
         scheduler = self.lr_schedulers()
-        self.log("lr", scheduler.get_last_lr()[0], prog_bar=True)
-        self.log('Training Loss', loss, prog_bar=True)
+        self.log("lr", scheduler.get_last_lr()[0], prog_bar=True, sync_dist=True)
+        self.log('Training Loss', loss, prog_bar=True, sync_dist=True)
         return loss
 
     def validation_step(self, batch):
@@ -61,7 +61,7 @@ class AcousticTransformer(L.LightningModule):
         logits = outputs[1]
         preds = logits.view(-1, self.num_labels)
         targets = y.view(-1)
-        self.log('Validation Loss', loss, prog_bar=True)
+        self.log('Validation Loss', loss, prog_bar=True, sync_dist=True)
         self.compute_metrics(preds, targets, 'Validation')
 
     def test_step(self, batch):
@@ -72,7 +72,7 @@ class AcousticTransformer(L.LightningModule):
         preds = logits.view(-1, self.num_labels)
         targets = y.view(-1)
         loss = celoss(preds, targets)
-        self.log('Test Loss', loss, prog_bar=True)
+        self.log('Test Loss', loss, prog_bar=True, sync_dist=True)
         self.compute_metrics(preds, targets, 'Test')
         return loss
 
