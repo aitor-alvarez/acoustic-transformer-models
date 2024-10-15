@@ -37,9 +37,9 @@ class AcousticTransformer(L.LightningModule):
         accuracy = self.train_acc(preds, targets)
         recall = self.train_rec(preds, targets)
         f1 = self.train_f1(preds, targets)
-        self.log(f'{name} Accuracy', accuracy, prog_bar=True)
-        self.log(f'{name} Recall', recall, prog_bar=True)
-        self.log(f'{name} F1 Score', f1, prog_bar=True)
+        self.log(f'{name} Accuracy', accuracy, prog_bar=True, sync_dist=True)
+        self.log(f'{name} Recall', recall, prog_bar=True, sync_dist=True)
+        self.log(f'{name} F1 Score', f1, prog_bar=True, sync_dist=True)
         return None
 
     def training_step(self, batch):
