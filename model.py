@@ -37,9 +37,9 @@ class AcousticTransformer(L.LightningModule):
         accuracy = self.train_acc(preds, targets)
         recall = self.train_rec(preds, targets)
         f1 = self.train_f1(preds, targets)
-        self.log(f'{name} Accuracy', accuracy, prog_bar=True, sync_dist=True)
-        self.log(f'{name} Recall', recall, prog_bar=True, sync_dist=True)
-        self.log(f'{name} F1 Score', f1, prog_bar=True, sync_dist=True)
+        self.log(f'{name} Accuracy', accuracy, prog_bar=True)
+        self.log(f'{name} Recall', recall, prog_bar=True)
+        self.log(f'{name} F1 Score', f1, prog_bar=True)
         return None
 
     def training_step(self, batch):
@@ -49,8 +49,8 @@ class AcousticTransformer(L.LightningModule):
         outputs = self.model(x, labels=y)
         loss = outputs[0]
         scheduler = self.lr_schedulers()
-        self.log("lr", scheduler.get_last_lr()[0], prog_bar=True, sync_dist=True)
-        self.log('Training Loss', loss, prog_bar=True, sync_dist=True)
+        self.log("lr", scheduler.get_last_lr()[0], prog_bar=True)
+        self.log('Training Loss', loss, prog_bar=True)
         return loss
 
     def validation_step(self, batch):
@@ -61,7 +61,7 @@ class AcousticTransformer(L.LightningModule):
         logits = outputs[1]
         preds = logits.view(-1, self.num_labels)
         targets = y.view(-1)
-        self.log('Validation Loss', loss, prog_bar=True, sync_dist=True)
+        self.log('Validation Loss', loss, prog_bar=True)
         self.compute_metrics(preds, targets, 'Validation')
 
     def test_step(self, batch):
@@ -72,7 +72,7 @@ class AcousticTransformer(L.LightningModule):
         preds = logits.view(-1, self.num_labels)
         targets = y.view(-1)
         loss = celoss(preds, targets)
-        self.log('Test Loss', loss, prog_bar=True, sync_dist=True)
+        self.log('Test Loss', loss, prog_bar=True)
         self.compute_metrics(preds, targets, 'Test')
         return loss
 
