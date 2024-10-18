@@ -68,7 +68,6 @@ if __name__ == '__main__':
 
         data.setup()
         trainer.fit(model, datamodule=data)
-        trainer.print(cuda.memory_summary())
         trainer.test(model, datamodule=data)
         print("training process completed")
 
