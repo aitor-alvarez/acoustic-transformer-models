@@ -7,7 +7,6 @@ from model import AcousticTransformer
 from transformers import AutoConfig
 from datasets import load_dataset
 from data import AudioDataset
-from torch import cuda
 
 
 if __name__ == '__main__':

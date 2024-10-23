@@ -47,14 +47,14 @@ class AudioDataset(L.LightningDataModule):
         end = len(train_data)
         self.val_dataset = train_data.select((range(0, k)))
         self.val_dataset = self.val_dataset.map(self.prepare_dataset, remove_columns='audio',
-                                                batch_size=1, batched=True)
+                                                batch_size=1, writer_batch_size=100, batched=True)
         self.train = train_data.select((range(k, end)))
         del train_data
         self.train = self.train.map(self.prepare_dataset, remove_columns='audio',
-                                              batch_size=1, batched=True)
+                                              batch_size=1, writer_batch_size=100, batched=True)
         self.test = self.dataset["test"].with_format("torch")
         self.test = self.test.map(self.prepare_dataset, remove_columns='audio',
-                                  batch_size=1, batched=True)
+                                  batch_size=1, writer_batch_size=100, batched=True)
 
     def train_dataloader(self) -> TRAIN_DATALOADERS:
         return DataLoader(self.train, batch_size=self.batch_size,
