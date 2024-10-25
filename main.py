@@ -52,16 +52,16 @@ if __name__ == '__main__':
         if args.n_gpus and args.n_nodes:
             if args.n_gpus > 1:
                 trainer = Trainer(max_epochs=args.num_epochs, logger=logger, accelerator='cuda', accumulate_grad_batches=2,
-                              strategy=args.strategy, devices=args.n_gpus, num_nodes=args.n_nodes, log_every_n_steps=10,
+                              strategy=args.strategy, devices=args.n_gpus, num_nodes=args.n_nodes, log_every_n_steps=10, precision=16,
                                   callbacks=[early_stopping, checkpoint_callback])
             elif args.n_gpus < 2:
                 trainer = Trainer(max_epochs=args.num_epochs, logger=logger, accelerator='cuda', accumulate_grad_batches=2,
-                              devices=args.n_gpus, num_nodes=args.n_nodes, log_every_n_steps=10,
+                              devices=args.n_gpus, num_nodes=args.n_nodes, log_every_n_steps=10, precision=16,
                                   callbacks=[early_stopping, checkpoint_callback])
         else:
             #For testing on Mac prior to SLURM set accelerator="mps". If mps is not available change accelerator="cpu"
             trainer = Trainer(max_epochs=args.num_epochs, logger=logger, accumulate_grad_batches=2,
-                              accelerator="cpu", devices="auto", log_every_n_steps=10,
+                              accelerator="cpu", devices="auto", log_every_n_steps=10, precision=16,
                               callbacks=[early_stopping, checkpoint_callback])
 
 
