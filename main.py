@@ -1,4 +1,6 @@
 from argparse import ArgumentParser
+
+import torch
 from lightning import Trainer
 from lightning.pytorch.loggers import WandbLogger
 from lightning.pytorch.callbacks.early_stopping import EarlyStopping
@@ -33,6 +35,8 @@ if __name__ == '__main__':
 
 
         model = AcousticTransformer(config)
+
+        model = torch.compile(model)
 
         early_stopping = EarlyStopping(monitor="Validation Accuracy", min_delta=0.00, patience=3, verbose=False,
                                             mode="max")
