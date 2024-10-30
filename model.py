@@ -1,11 +1,11 @@
 import lightning as L
 import torch
-import torch.nn as nn
 from transformers.models.hubert import HubertForSequenceClassification
 from transformers.models.wav2vec2 import Wav2Vec2ForSequenceClassification
 from transformers.models.wav2vec2_conformer import Wav2Vec2ConformerForSequenceClassification
 from transformers.models.wavlm import WavLMForSequenceClassification
 from torchmetrics import Accuracy, Recall, F1Score
+from transformers import get_linear_schedule_with_warmup
 
 class AcousticTransformer(L.LightningModule):
     def __init__(self, config):
@@ -65,18 +65,22 @@ class AcousticTransformer(L.LightningModule):
         self.compute_metrics(preds, targets, 'Validation')
 
     def test_step(self, batch):
-        x = batch['input_features']
+        x = batch['input_values']
         y = batch['labels']
-        logits = self.forward(x)
-        celoss = nn.CrossEntropyLoss()
+        outputs = self.model(x, labels=y)
+        loss = outputs[0]
+        logits = outputs[1]
         preds = logits.view(-1, self.num_labels)
         targets = y.view(-1)
-        loss = celoss(preds, targets)
         self.log('Test Loss', loss, prog_bar=True)
         self.compute_metrics(preds, targets, 'Test')
         return loss
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=0.0001, weight_decay=0.00)
-        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=30, gamma=0.1)
+        optimizer = torch.optim.Adam(self.parameters(), lr=3e-4, weight_decay=0.00)
+        scheduler = get_linear_schedule_with_warmup(
+            optimizer,
+            num_warmup_steps=200,
+            num_training_steps=self.trainer.estimated_stepping_batches
+        )
         return [optimizer], [scheduler]

@@ -1,5 +1,4 @@
 from argparse import ArgumentParser
-
 import torch
 from lightning import Trainer
 from lightning.pytorch.loggers import WandbLogger
