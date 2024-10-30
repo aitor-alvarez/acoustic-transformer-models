@@ -35,8 +35,6 @@ if __name__ == '__main__':
 
         model = AcousticTransformer(config)
 
-        model = torch.compile(model)
-
         early_stopping = EarlyStopping(monitor="Validation Accuracy", min_delta=0.00, patience=3, verbose=False,
                                             mode="max")
 
@@ -54,6 +52,7 @@ if __name__ == '__main__':
         )
         if args.n_gpus and args.n_nodes:
             if args.n_gpus > 1:
+                model = torch.compile(model)
                 trainer = Trainer(max_epochs=args.num_epochs, logger=logger, accelerator='cuda', accumulate_grad_batches=2,
                               strategy=args.strategy, devices=args.n_gpus, num_nodes=args.n_nodes, log_every_n_steps=10, precision=16,
                                   callbacks=[early_stopping, checkpoint_callback])
@@ -65,6 +64,7 @@ if __name__ == '__main__':
                                       callbacks=[early_stopping, checkpoint_callback])
 
                 else:
+                    model = torch.compile(model)
                     trainer = Trainer(max_epochs=args.num_epochs, logger=logger, accelerator='cuda', accumulate_grad_batches=2,
                               devices=args.n_gpus, num_nodes=args.n_nodes, log_every_n_steps=10, precision=16,
                                   callbacks=[early_stopping, checkpoint_callback])
