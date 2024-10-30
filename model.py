@@ -77,7 +77,7 @@ class AcousticTransformer(L.LightningModule):
         return loss
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=3e-4, weight_decay=0.00)
+        optimizer = torch.optim.Adam(self.parameters(), lr=3e-3, weight_decay=0.00)
         scheduler = get_linear_schedule_with_warmup(
             optimizer,
             num_warmup_steps=200,
