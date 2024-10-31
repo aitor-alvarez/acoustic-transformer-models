@@ -29,11 +29,14 @@ if __name__ == '__main__':
             label2id[label] = str(i)
             id2label[str(i)] = label
         num_labels = len(id2label)
+
         config = AutoConfig.from_pretrained(args.model_name,
-                                num_labels=num_labels, label2id=label2id, id2label=id2label)
+                                        num_labels=num_labels, label2id=label2id, id2label=id2label)
 
-
-        model = AcousticTransformer(config)
+        if args.strategy:
+            model = AcousticTransformer(config, strategy=args.strategy)
+        else:
+            model = AcousticTransformer(config, strategy=None)
 
         early_stopping = EarlyStopping(monitor="Validation Accuracy", min_delta=0.00, patience=3, verbose=False,
                                             mode="max")

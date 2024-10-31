@@ -6,16 +6,19 @@ from transformers.models.wav2vec2_conformer import Wav2Vec2ConformerForSequenceC
 from transformers.models.wavlm import WavLMForSequenceClassification
 from torchmetrics import Accuracy, Recall, F1Score
 from transformers import get_linear_schedule_with_warmup
+from deepspeed.ops.adam import DeepSpeedCPUAdam
 
 class AcousticTransformer(L.LightningModule):
-    def __init__(self, config):
+    def __init__(self, config, strategy):
         super().__init__()
         self.save_hyperparameters()
         self.train_acc = Accuracy(task="multiclass", average='weighted', num_classes=config.num_labels)
         self.train_f1 = F1Score(task="multiclass", average='weighted', num_classes=config.num_labels)
         self.train_rec = Recall(task="multiclass", average='weighted', num_classes=config.num_labels)
         self.config = config
+        self.strategy = strategy
         self.num_labels = self.config.num_labels
+
         if 'hubert' in self.config._name_or_path:
             self.model = HubertForSequenceClassification.from_pretrained(config._name_or_path, config=config)
             self.model.freeze_feature_encoder()
@@ -77,7 +80,10 @@ class AcousticTransformer(L.LightningModule):
         return loss
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=3e-3, weight_decay=0.00)
+        if self.strategy == 'deepspeed_stage_2_offload':
+            optimizer = DeepSpeedCPUAdam(self.parameters())
+        else:
+            optimizer = torch.optim.Adam(self.parameters(), lr=3e-3, weight_decay=0.00)
         scheduler = get_linear_schedule_with_warmup(
             optimizer,
             num_warmup_steps=200,
