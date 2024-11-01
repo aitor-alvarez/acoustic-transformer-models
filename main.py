@@ -55,11 +55,18 @@ if __name__ == '__main__':
         )
         if args.n_gpus and args.n_nodes:
             if args.n_gpus > 1:
-                if args.strategy != 'deepspeed_stage_2_offload':
+                if args.strategy != 'deepspeed_stage_1' or 'deepspeed_stage_2_offload' or 'deepspeed_stage_3':
                     model = torch.compile(model)
-                trainer = Trainer(max_epochs=args.num_epochs, logger=logger, accelerator='cuda', accumulate_grad_batches=2,
-                              strategy=args.strategy, devices=args.n_gpus, num_nodes=args.n_nodes, log_every_n_steps=10, precision=16,
+                    trainer = Trainer(max_epochs=args.num_epochs, logger=logger, accelerator='cuda', accumulate_grad_batches=2,
+                              strategy=args.strategy, devices=args.n_gpus, num_nodes=args.n_nodes, log_every_n_steps=10, precision="16",
                                   callbacks=[early_stopping, checkpoint_callback])
+                else:
+                    trainer = Trainer(max_epochs=args.num_epochs, logger=logger, accelerator='cuda',
+                                      accumulate_grad_batches=2,
+                                      strategy=args.strategy, devices=args.n_gpus, num_nodes=args.n_nodes,
+                                      log_every_n_steps=10, precision="bf16",
+                                      callbacks=[early_stopping, checkpoint_callback])
+
             elif args.n_gpus < 2:
                 if args.strategy:
                     trainer = Trainer(max_epochs=args.num_epochs, logger=logger, accelerator='cuda',
