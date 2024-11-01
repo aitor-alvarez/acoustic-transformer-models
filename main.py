@@ -41,7 +41,7 @@ if __name__ == '__main__':
         early_stopping = EarlyStopping(monitor="Validation Accuracy", min_delta=0.00, patience=3, verbose=False,
                                             mode="max")
 
-        checkpoint_callback = ModelCheckpoint(dirpath="checkpoints/", save_top_k=2, monitor="Validation Accuracy",
+        checkpoint_callback = ModelCheckpoint(dirpath="checkpoints/", save_top_k=1, monitor="Validation Accuracy",
                                               mode="max")
 
         data = AudioDataset(model_name=args.model_name, batch_size=args.batch_size,
