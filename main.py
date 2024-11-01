@@ -4,11 +4,11 @@ from lightning import Trainer
 from lightning.pytorch.loggers import WandbLogger
 from lightning.pytorch.callbacks.early_stopping import EarlyStopping
 from lightning.pytorch.callbacks import ModelCheckpoint
+from pytorch_lightning.strategies import DDPStrategy
 from model import AcousticTransformer
 from transformers import AutoConfig
 from datasets import load_dataset
 from data import AudioDataset
-
 
 if __name__ == '__main__':
     parser = ArgumentParser()
@@ -31,7 +31,7 @@ if __name__ == '__main__':
         num_labels = len(id2label)
 
         config = AutoConfig.from_pretrained(args.model_name,
-                                        num_labels=num_labels, label2id=label2id, id2label=id2label)
+                                            num_labels=num_labels, label2id=label2id, id2label=id2label)
 
         if args.strategy:
             model = AcousticTransformer(config, strategy=args.strategy)
@@ -39,30 +39,32 @@ if __name__ == '__main__':
             model = AcousticTransformer(config, strategy=None)
 
         early_stopping = EarlyStopping(monitor="Validation Accuracy", min_delta=0.00, patience=3, verbose=False,
-                                            mode="max")
+                                       mode="max")
 
         checkpoint_callback = ModelCheckpoint(dirpath="checkpoints/", save_top_k=1, monitor="Validation Accuracy",
                                               mode="max")
 
         data = AudioDataset(model_name=args.model_name, batch_size=args.batch_size,
-                                dataset=dataset)
+                            dataset=dataset)
 
         logger = WandbLogger(
             project="acoustic_transformer",
             log_model=False,
-            offline = True,
+            offline=True,
             save_dir="./wandb",
         )
         if args.n_gpus and args.n_nodes:
             if args.n_gpus > 1:
-                if args.strategy is not None and 'deepspeed_stage' not in args.strategy:
-                    model = torch.compile(model)
-                    trainer = Trainer(max_epochs=args.num_epochs, logger=logger, accelerator='cuda', accumulate_grad_batches=2,
-                              strategy=args.strategy, devices=args.n_gpus, num_nodes=args.n_nodes, log_every_n_steps=10, precision="16",
-                                  callbacks=[early_stopping, checkpoint_callback])
+                if 'deepspeed_stage' not in args.strategy:
+                    trainer = Trainer(max_epochs=args.num_epochs, logger=logger, accelerator='cuda',
+                                      accumulate_grad_batches=2,
+                                      strategy=DDPStrategy(find_unused_parameters=True), devices=args.n_gpus,
+                                      num_nodes=args.n_nodes, log_every_n_steps=10, precision="16",
+                                      callbacks=[early_stopping, checkpoint_callback])
                 else:
                     trainer = Trainer(max_epochs=args.num_epochs, logger=logger, accelerator='cuda',
                                       accumulate_grad_batches=2, devices=args.n_gpus, num_nodes=args.n_nodes,
+                                      strategy=args.strategy,
                                       log_every_n_steps=10, precision="16",
                                       callbacks=[early_stopping, checkpoint_callback])
 
@@ -75,15 +77,16 @@ if __name__ == '__main__':
 
                 else:
                     model = torch.compile(model)
-                    trainer = Trainer(max_epochs=args.num_epochs, logger=logger, accelerator='cuda', accumulate_grad_batches=2,
-                              devices=args.n_gpus, num_nodes=args.n_nodes, log_every_n_steps=10, precision=16,
-                                  callbacks=[early_stopping, checkpoint_callback])
+                    trainer = Trainer(max_epochs=args.num_epochs, logger=logger, accelerator='cuda',
+                                      accumulate_grad_batches=2,
+                                      devices=args.n_gpus, num_nodes=args.n_nodes, log_every_n_steps=10, precision=16,
+                                      callbacks=[early_stopping, checkpoint_callback])
         else:
-            #For testing on Mac prior to SLURM set accelerator="mps". If mps is not available change accelerator="cpu"
+            model = torch.compile(model)
+            # For testing on Mac prior to SLURM set accelerator="mps". If mps is not available change accelerator="cpu"
             trainer = Trainer(max_epochs=args.num_epochs, logger=logger, accumulate_grad_batches=2,
                               accelerator="cpu", devices="auto", log_every_n_steps=10, precision=16,
                               callbacks=[early_stopping, checkpoint_callback])
-
 
         data.setup()
         trainer.fit(model, datamodule=data)
