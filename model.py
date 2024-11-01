@@ -81,7 +81,7 @@ class AcousticTransformer(L.LightningModule):
 
     def configure_optimizers(self):
         if self.strategy == 'deepspeed_stage_2_offload':
-            optimizer = DeepSpeedCPUAdam(self.parameters())
+            optimizer = DeepSpeedCPUAdam(self.parameters(), lr=3e-3, weight_decay=0.00)
         else:
             optimizer = torch.optim.Adam(self.parameters(), lr=3e-3, weight_decay=0.00)
         scheduler = get_linear_schedule_with_warmup(
