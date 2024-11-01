@@ -55,7 +55,7 @@ if __name__ == '__main__':
         )
         if args.n_gpus and args.n_nodes:
             if args.n_gpus > 1:
-                if 'deepspeed_stage' not in args.strategy:
+                if args.strategy:
                     trainer = Trainer(max_epochs=args.num_epochs, logger=logger, accelerator='cuda',
                                       accumulate_grad_batches=2,
                                       strategy=DDPStrategy(find_unused_parameters=True), devices=args.n_gpus,
