@@ -55,7 +55,7 @@ if __name__ == '__main__':
         )
         if args.n_gpus and args.n_nodes:
             if args.n_gpus > 1:
-                if args.strategy and 'deepspeed_stage' not in args.strategy:
+                if args.strategy is not None and 'deepspeed_stage' not in args.strategy:
                     model = torch.compile(model)
                     trainer = Trainer(max_epochs=args.num_epochs, logger=logger, accelerator='cuda', accumulate_grad_batches=2,
                               strategy=args.strategy, devices=args.n_gpus, num_nodes=args.n_nodes, log_every_n_steps=10, precision="16",
