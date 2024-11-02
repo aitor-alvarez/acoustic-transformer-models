@@ -58,13 +58,13 @@ if __name__ == '__main__':
                 if args.strategy:
                     trainer = Trainer(max_epochs=args.num_epochs, logger=logger, accelerator='cuda',
                                       accumulate_grad_batches=2,
-                                      strategy=DDPStrategy(find_unused_parameters=True), devices=args.n_gpus,
+                                      strategy=args.strategy, devices=args.n_gpus,
                                       num_nodes=args.n_nodes, log_every_n_steps=10, precision="16",
                                       callbacks=[early_stopping, checkpoint_callback])
                 else:
                     trainer = Trainer(max_epochs=args.num_epochs, logger=logger, accelerator='cuda',
                                       accumulate_grad_batches=2, devices=args.n_gpus, num_nodes=args.n_nodes,
-                                      strategy=args.strategy,
+                                      strategy=DDPStrategy(find_unused_parameters=True),
                                       log_every_n_steps=10, precision="16",
                                       callbacks=[early_stopping, checkpoint_callback])
 
