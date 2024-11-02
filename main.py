@@ -64,7 +64,7 @@ if __name__ == '__main__':
                 else:
                     trainer = Trainer(max_epochs=args.num_epochs, logger=logger, accelerator='cuda',
                                       accumulate_grad_batches=2, devices=args.n_gpus, num_nodes=args.n_nodes,
-                                      strategy=DDPStrategy(find_unused_parameters=True),
+                                      strategy='ddp',
                                       log_every_n_steps=10, precision="16",
                                       callbacks=[early_stopping, checkpoint_callback])
 
